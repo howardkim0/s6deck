@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "brightness": 80,
+  "follow_frontmost_app": true,
+  "virtual_mic": false,
+  "sound_volume": 30,
+  "profiles": [
+    {
+      "name": "Default",
+      "apps": [],
+      "pages": [
+        {
+          "name": "Main",
+          "bindings": {
+            "key:0": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "launch",
+                "value": "Safari"
+              }
+            },
+            "key:1": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "launch",
+                "value": "Terminal"
+              }
+            },
+            "key:2": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "launch",
+                "value": "Notes"
+              }
+            },
+            "key:3": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "launch",
+                "value": "Music"
+              }
+            },
+            "key:4": {
+              "title": "Screen\nshot",
+              "icon": "",
+              "color": "#6a1b9a",
+              "action": {
+                "type": "hotkey",
+                "value": "cmd+shift+4"
+              }
+            },
+            "key:5": {
+              "title": "Page 2 \u203a",
+              "icon": "",
+              "color": "#424242",
+              "action": {
+                "type": "page",
+                "value": "next"
+              }
+            },
+            "button:0": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "page",
+                "value": "prev"
+              }
+            },
+            "button:1": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "page",
+                "value": "next"
+              }
+            },
+            "button:2": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "stop_sounds",
+                "value": ""
+              }
+            },
+            "knob:0:left": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "volume",
+                "value": "down"
+              }
+            },
+            "knob:0:right": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "volume",
+                "value": "up"
+              }
+            },
+            "knob:0:press": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "volume",
+                "value": "mute"
+              }
+            },
+            "knob:1:left": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "system_brightness",
+                "value": "down"
+              }
+            },
+            "knob:1:right": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "system_brightness",
+                "value": "up"
+              }
+            },
+            "knob:2:left": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "hotkey",
+                "value": "prev"
+              }
+            },
+            "knob:2:right": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "hotkey",
+                "value": "next"
+              }
+            },
+            "knob:2:press": {
+              "title": "",
+              "icon": "",
+              "color": "#1e1e1e",
+              "action": {
+                "type": "hotkey",
+                "value": "playpause"
+              }
+            }
+          }
+        },
+        {
+          "name": "Soundboard",
+          "bindings": {
+            "key:0": {
+              "title": "FAHHH",
+              "icon": "",
+              "color": "#e65100",
+              "action": {
+                "type": "sound",
+                "value": "/Users/h.kim/Library/Application Support/s6deck/sounds/fahhh.mp3"
+              }
+            },
+            "key:1": {
+              "title": "Bruh",
+              "icon": "",
+              "color": "#4527a0",
+              "action": {
+                "type": "sound",
+                "value": "/Users/h.kim/Library/Application Support/s6deck/sounds/bruh.mp3"
+              }
+            },
+            "key:2": {
+              "title": "Stop",
+              "icon": "",
+              "color": "#424242",
+              "action": {
+                "type": "stop_sounds",
+                "value": ""
+              }
+            },
+            "key:3": {
+              "title": "Yeet",
+              "icon": "",
+              "color": "#00897b",
+              "action": {
+                "type": "type_text",
+                "value": "Yeet"
+              }
+            },
+            "key:5": {
+              "title": "\u2039 Back",
+              "icon": "",
+              "color": "#424242",
+              "action": {
+                "type": "page",
+                "value": "prev"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

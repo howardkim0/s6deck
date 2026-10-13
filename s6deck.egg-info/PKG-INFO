@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: s6deck
+Version: 0.1.0
+Summary: Local-only controller for Streonor / MiraBox StreamDock devices
+Author: Howard Kim
+License-Expression: MIT
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: hidapi>=0.14
+Requires-Dist: Pillow>=10
+Requires-Dist: PySide6-Essentials>=6.6
+Requires-Dist: pynput>=1.7
+Requires-Dist: sounddevice>=0.4.6
+Requires-Dist: soundfile>=0.12
+Requires-Dist: numpy>=1.24
+Requires-Dist: pyobjc-framework-Cocoa>=10; sys_platform == "darwin"
+Requires-Dist: pyobjc-framework-Quartz>=10; sys_platform == "darwin"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Provides-Extra: build
+Requires-Dist: pyinstaller>=6; extra == "build"
+Dynamic: license-file

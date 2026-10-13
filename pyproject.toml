@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]  # 77+ for the SPDX `license = "MIT"` field
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s6deck"
+version = "0.1.0"
+description = "Local-only controller for Streonor / MiraBox StreamDock devices"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Howard Kim" }]
+dependencies = [
+    "hidapi>=0.14",
+    "Pillow>=10",
+    "PySide6-Essentials>=6.6",
+    "pynput>=1.7",
+    "sounddevice>=0.4.6",
+    "soundfile>=0.12",
+    "numpy>=1.24",
+    "pyobjc-framework-Cocoa>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+build = ["pyinstaller>=6"]
+
+[project.scripts]
+s6deck = "s6deck.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["s6deck*"]
+
+[tool.setuptools.package-data]
+s6deck = ["assets/*"]

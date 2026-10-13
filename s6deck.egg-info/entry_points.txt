@@ -1,0 +1,2 @@
+[console_scripts]
+s6deck = s6deck.__main__:main
