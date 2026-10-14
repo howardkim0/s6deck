@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QColorDialog, QComboBox, QFileDialog, QFormLayout
                                QHBoxLayout, QLabel, QLineEdit, QPushButton, QToolButton, QWidget)
 
 from ..actions import SYSTEM_BRIGHTNESS_COMMANDS, VOLUME_COMMANDS, parse_hotkey
+from ..audio_output import AUDIO_OUTPUT_COMMANDS
 from ..config import Action, Binding
 
 PANEL_WIDTH = 300
@@ -22,18 +23,19 @@ ACTION_TYPES = (
     ("profile", "Switch profile"),
     ("volume", "System volume"),
     ("system_brightness", "System brightness"),
+    ("audio_output", "Audio output device"),
     ("brightness", "Button brightness"),  # type id kept as "brightness" for existing configs
     ("sound", "Play sound"),
     ("stop_sounds", "Stop sounds"),
 )
 # Action types whose value is picked from a list rather than typed.
-CHOICE_ACTION_TYPES = ("page", "profile", "volume", "system_brightness", "brightness")
+CHOICE_ACTION_TYPES = ("page", "profile", "volume", "system_brightness", "audio_output", "brightness")
 # Action types without a value field.
 VALUELESS_ACTION_TYPES = ("none", "stop_sounds")
 # Action types whose value is a file chosen with a Browse button, and its file filter.
 BROWSE_FILTERS = {"launch": "", "sound": "Audio (*.mp3 *.wav *.m4a *.aac *.aiff *.flac *.ogg)"}
 # Action types the Test button can run from the GUI (the rest act on the device).
-TESTABLE_ACTION_TYPES = ("hotkey", "launch", "url", "shell", "volume", "system_brightness",
+TESTABLE_ACTION_TYPES = ("hotkey", "launch", "url", "shell", "volume", "system_brightness", "audio_output",
                          "sound", "stop_sounds")
 
 # Short placeholder inside the field, longer help shown under it.
@@ -56,6 +58,9 @@ VALUE_HELP = {
     "system_brightness": "Laptop screen and external monitors, up / down one step. On macOS, "
                          "external monitors need MonitorControl (or similar) handling the "
                          "brightness keys.",
+    "audio_output": "Switches the default output (speakers, headset, ...) to the next or previous "
+                    "device. Bind next and prev to a knob's right and left. Virtual devices "
+                    "(VB-CABLE, ...) are skipped. Windows and Linux.",
     "brightness": "Brightness of the deck's key screens: up / down by 10, or a level 0–100",
 }
 PAGE_CHOICES = ("next", "prev")
@@ -106,11 +111,15 @@ class Inspector(QGroupBox):
         self._value_choice = QComboBox()
         self._value_choice.setEditable(True)
         self._browse_target = QToolButton(text="…", toolTip="Choose app or file")
-        value_row = QHBoxLayout()
-        value_row.setSpacing(4)
-        value_row.addWidget(self._value_text, 1)
-        value_row.addWidget(self._value_choice, 1)
-        value_row.addWidget(self._browse_target)
+        # A widget, not a bare layout: hiding a layout row hides its widgets one by one, and
+        # the per-type setVisible calls below would show them again outside the layout.
+        value_row = QWidget()
+        value_layout = QHBoxLayout(value_row)
+        value_layout.setContentsMargins(0, 0, 0, 0)
+        value_layout.setSpacing(4)
+        value_layout.addWidget(self._value_text, 1)
+        value_layout.addWidget(self._value_choice, 1)
+        value_layout.addWidget(self._browse_target)
         self._help = QLabel(wordWrap=True)
         self._help.setStyleSheet(HELP_STYLE)
         self._error = QLabel(wordWrap=True)
@@ -228,6 +237,8 @@ class Inspector(QGroupBox):
                 choices = list(VOLUME_COMMANDS)
             elif action_type == "system_brightness":
                 choices = list(SYSTEM_BRIGHTNESS_COMMANDS)
+            elif action_type == "audio_output":
+                choices = list(AUDIO_OUTPUT_COMMANDS)
             else:
                 choices = list(BRIGHTNESS_CHOICES)
             was_loading, self._loading = self._loading, True

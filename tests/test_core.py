@@ -95,6 +95,24 @@ def test_change_system_brightness_rejects_unknown_command():
         change_system_brightness("max")
 
 
+def test_cycle_audio_output_rejects_unknown_command():
+    from s6deck.audio_output import cycle_audio_output
+
+    with pytest.raises(ValueError):
+        cycle_audio_output("first")
+
+
+def test_next_audio_output_wraps_and_skips_virtual_devices():
+    from s6deck.audio_output import _next_device
+
+    devices = [("a", "Speakers"), ("cable", "CABLE Input (VB-Audio Virtual Cable)"), ("b", "Headset")]
+    assert _next_device(devices, "a", 1) == ("b", "Headset")
+    assert _next_device(devices, "b", 1) == ("a", "Speakers")  # wraps, skipping the cable
+    assert _next_device(devices, "a", -1) == ("b", "Headset")
+    assert _next_device(devices, "cable", 1) == ("a", "Speakers")  # on a virtual device: first real one
+    assert _next_device([("a", "Speakers")], "a", 1) is None  # nothing else to switch to
+
+
 def test_config_round_trips_soundboard_settings(tmp_path):
     config = Config(virtual_mic=True, sound_volume=45, profiles=[Profile(pages=[Page(bindings={
         "key:2": Binding(title="Stop", action=Action("stop_sounds", "")),

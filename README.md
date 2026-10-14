@@ -16,6 +16,7 @@ Runs on macOS (tested). Windows and Linux code paths are written but not yet tes
 - **Actions** for any key, button, or knob turn/press:
   - keyboard shortcut, type text, open app/file, open URL, run shell command
   - system volume (native macOS overlay), system brightness (laptop + external monitors)
+  - audio output device: cycle the default output (Windows, Linux; virtual devices skipped)
   - play sound / stop sounds (soundboard), button brightness
   - switch page, switch profile
 - **Pages and profiles**, with profiles switching automatically to match the frontmost app.

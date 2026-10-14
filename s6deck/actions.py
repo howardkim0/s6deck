@@ -295,12 +295,19 @@ HOST_ACTIONS = {
     "shell": run_shell,
     "volume": change_volume,
     "system_brightness": change_system_brightness,
+    "audio_output": lambda command: _audio_output().cycle_audio_output(command),
     "type_text": type_text,
     "sound": lambda path: _soundboard().play(path),
     "stop_sounds": lambda _value: _soundboard().stop_all(),
 }
 # Actions that take no value.
 VALUELESS_ACTIONS = ("stop_sounds",)
+
+
+def _audio_output():
+    from . import audio_output  # COM/pactl code loads only when used
+
+    return audio_output
 
 
 def _soundboard():
