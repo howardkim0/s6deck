@@ -63,9 +63,11 @@ def _self_test() -> int:
         import numpy as np
         import soundfile
         from .audio import _load_clip
-        with tempfile.NamedTemporaryFile(suffix=".wav") as wav:
-            soundfile.write(wav.name, np.zeros((4410, 1), dtype="float32"), 44100)
-            clip = _load_clip(wav.name, 0.0)
+        # A directory, not NamedTemporaryFile: Windows can't reopen a file that is still open.
+        with tempfile.TemporaryDirectory() as directory:
+            wav = str(Path(directory) / "test.wav")
+            soundfile.write(wav, np.zeros((4410, 1), dtype="float32"), 44100)
+            clip = _load_clip(wav, 0.0)
         return f"resampled to {clip.shape}"
 
     def list_audio_devices():
