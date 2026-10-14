@@ -72,6 +72,32 @@ def _macos_icon(target: str) -> Image.Image | None:
 
 # -- Windows --------------------------------------------------------------
 
+@lru_cache(maxsize=1)
+def _win32_api():
+    """user32/gdi32 with declared signatures. Without them ctypes passes handles as 32-bit
+    ints, and 64-bit handles above 2**31 raise OverflowError. Private WinDLL instances so the
+    prototypes don't leak into other ctypes users (pynput shares ctypes.windll)."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32, gdi32 = ctypes.WinDLL("user32"), ctypes.WinDLL("gdi32")
+    user32.PrivateExtractIconsW.argtypes = [wintypes.LPCWSTR, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                            ctypes.POINTER(wintypes.HICON), ctypes.c_void_p,
+                                            wintypes.UINT, wintypes.UINT]
+    user32.PrivateExtractIconsW.restype = wintypes.UINT
+    user32.GetIconInfo.argtypes = [wintypes.HICON, ctypes.c_void_p]
+    user32.GetIconInfo.restype = wintypes.BOOL
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.DestroyIcon.argtypes = [wintypes.HICON]
+    gdi32.GetDIBits.argtypes = [wintypes.HDC, wintypes.HBITMAP, wintypes.UINT, wintypes.UINT,
+                                ctypes.c_void_p, ctypes.c_void_p, wintypes.UINT]
+    gdi32.GetDIBits.restype = ctypes.c_int
+    gdi32.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    return user32, gdi32
+
+
 def _windows_icon(target: str) -> Image.Image | None:
     """Largest icon embedded in an .exe/.dll/.ico, found by path or on PATH."""
     import ctypes
@@ -84,7 +110,7 @@ def _windows_icon(target: str) -> Image.Image | None:
             return None
         path = Path(found)
 
-    user32, gdi32 = ctypes.windll.user32, ctypes.windll.gdi32
+    user32, gdi32 = _win32_api()
     icon = wintypes.HICON()
     extracted = user32.PrivateExtractIconsW(str(path), 0, ICON_PIXELS, ICON_PIXELS,
                                             ctypes.byref(icon), None, 1, 0)
