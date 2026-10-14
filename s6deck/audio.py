@@ -118,7 +118,7 @@ class SoundBoard:
             return
         import sounddevice
 
-        sounddevice.play(scaled_clip, SAMPLE_RATE, blocking=False)
+        sounddevice.play(scaled_clip, SAMPLE_RATE, blocking=False, device=_default_output_follower())
 
     def _start_stream(self) -> str:
         import numpy as np
@@ -168,6 +168,23 @@ class SoundBoard:
             stream.close()
         with self._lock:
             self._playing.clear()
+
+
+def _default_output_follower() -> int | None:
+    """Output device that tracks the system default at play time, or None for PortAudio's default.
+
+    PortAudio resolves its default device once, when it initializes, so after the default
+    output changes (e.g. the audio output action switches to headphones) clips would keep
+    going to the old device. On Windows, MME's Sound Mapper is routed by Windows to the
+    current default each time a stream opens."""
+    if sys.platform != "win32":
+        return None
+    import sounddevice
+
+    for index, device in enumerate(sounddevice.query_devices()):
+        if device["max_output_channels"] > 0 and device["name"].startswith("Microsoft Sound Mapper"):
+            return index
+    return None
 
 
 def _find_device(devices, name: str, want_output: bool) -> int | None:
