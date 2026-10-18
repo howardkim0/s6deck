@@ -104,13 +104,13 @@ Build on each target OS; PyInstaller doesn't cross-compile. The spec drops unuse
 
 ### Releases
 
-[`.github/workflows/release.yml`](.github/workflows/release.yml) builds, tests and self-tests both apps on GitHub Actions (macOS arm64, Windows x64). To publish a release, bump `VERSION` in `packaging/s6deck.spec` and `version` in `pyproject.toml`, then push a matching tag:
+[`.github/workflows/release.yml`](.github/workflows/release.yml) builds, tests and self-tests both apps on GitHub Actions (macOS arm64, Windows x64) and publishes them on the [Releases](https://github.com/howardkim0/s6deck/releases) page. Versions are git tags; no file is edited per release.
 
-```sh
-git tag v0.2.0 && git push origin v0.2.0
-```
+- **Every push to `main`** that changes the app releases the next patch version (v0.1.0 → v0.1.1). Pushes that only touch the README, `docs/`, `tests/` or `tools/` don't release; neither do commits with `[skip ci]` in the message.
+- **Minor or major bump**: Actions → Build and release → Run workflow, and pick `minor` or `major`.
+- **A specific version**: `git tag v1.0.0 && git push origin v1.0.0`.
 
-The zips appear on the [Releases](https://github.com/howardkim0/s6deck/releases) page. Running the workflow by hand (Actions → Build and release → Run workflow) builds the same zips as workflow artifacts without publishing.
+Local builds take their version from the latest tag.
 
 App icons are generated from `s6deck/assets/mickey_source.png` with `tools/build_icons.py`.
 

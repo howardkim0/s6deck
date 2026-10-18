@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "s6deck"
-version = "0.1.0"
+version = "0.1.0"  # not updated per release: releases are versioned by git tags (see .github/workflows/release.yml)
 description = "Local-only controller for Streonor / MiraBox StreamDock devices"
 requires-python = ">=3.10"
 license = "MIT"

@@ -1,17 +1,63 @@
-# Builds the macOS app and Windows exe. Pushing a tag like v0.2.0 publishes them as a
-# GitHub release; running the workflow by hand only uploads them as workflow artifacts.
+# Builds the macOS app and Windows exe and publishes them as a GitHub release.
+# Versions come from git tags; nothing in the repo is edited per release.
+#   - push to main (app changes)  → next patch version, e.g. v0.1.0 → v0.1.1
+#   - Run workflow (Actions tab)  → choose patch / minor / major
+#   - push a tag like v1.0.0      → releases exactly that version
+# Add [skip ci] to a commit message to push without releasing.
 name: Build and release
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+    paths-ignore: [README.md, "docs/**", "tests/**", "tools/**", .gitignore]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
 
 permissions:
   contents: write
 
+concurrency:
+  group: release              # one release at a time, so versions never collide
+  cancel-in-progress: false
+
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0      # all tags
+      - id: next
+        env:
+          BUMP: ${{ inputs.bump || 'patch' }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version=${GITHUB_REF_NAME#v}
+          elif git tag --points-at HEAD | grep -q '^v'; then
+            echo "HEAD is already released as $(git tag --points-at HEAD | grep '^v')"; exit 0
+          else
+            last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v0.0.0)
+            IFS=. read -r major minor patch <<< "${last#v}"
+            case "$BUMP" in
+              major) version="$((major + 1)).0.0" ;;
+              minor) version="$major.$((minor + 1)).0" ;;
+              *)     version="$major.$minor.$((patch + 1))" ;;
+            esac
+          fi
+          echo "Releasing v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
+    if: needs.version.outputs.version
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +67,8 @@ jobs:
           - os: windows-latest
             asset: s6deck-windows-x64.zip
     runs-on: ${{ matrix.os }}
+    env:
+      S6DECK_VERSION: ${{ needs.version.outputs.version }}   # read by packaging/s6deck.spec
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -53,8 +101,7 @@ jobs:
           path: ${{ matrix.asset }}
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
@@ -63,4 +110,6 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" *.zip --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+          TAG: v${{ needs.version.outputs.version }}
+        # Creates the tag on the built commit if it doesn't exist yet.
+        run: gh release create "$TAG" *.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes

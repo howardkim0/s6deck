@@ -1,5 +1,7 @@
 # PyInstaller spec. Build from the repo root:  .venv/bin/pyinstaller --noconfirm packaging/s6deck.spec
 # Output: dist/s6deck.app (macOS), dist/s6deck/ (Windows/Linux). Build each OS on that OS.
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,7 +11,21 @@ ROOT = Path(SPECPATH).parent
 ASSETS = ROOT / "s6deck" / "assets"
 APP_NAME = "s6deck"
 BUNDLE_ID = "io.github.s6deck"
-VERSION = "0.1.0"
+
+
+def _version() -> str:
+    """Git tags are the version source: CI passes the release version, local builds use the latest tag."""
+    if os.environ.get("S6DECK_VERSION"):
+        return os.environ["S6DECK_VERSION"]
+    try:
+        tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0", "--match", "v*"], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.strip()
+        return tag.removeprefix("v")
+    except (OSError, subprocess.CalledProcessError):
+        return "0.0.0"
+
+
+VERSION = _version()
 
 hidden_imports = [
     *collect_submodules("pynput"),          # backends are chosen at runtime per OS
