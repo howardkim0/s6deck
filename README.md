@@ -2,13 +2,28 @@
 
 A local-only controller app for the **Streonor S6** stream deck (a MiraBox StreamDock-family device): six screen keys, three buttons and three knobs. It replaces the vendor software with a small Python/Qt app that talks to the device directly over USB. No Chromium, Node, cloud account, telemetry or network access.
 
-Runs on macOS (tested). Windows and Linux code paths are written but not yet tested on hardware.
+Runs on macOS and Windows (both tested on hardware). Linux code paths are written but not yet tested.
 
 ![Main page](docs/screenshots/main.png)
 
 | Soundboard page | Knob bound to system volume | Type-text key |
 |---|---|---|
 | ![Soundboard](docs/screenshots/soundboard.png) | ![Knob](docs/screenshots/knob.png) | ![Type text](docs/screenshots/type-text.png) |
+
+## Download
+
+Get the latest build from [Releases](https://github.com/howardkim0/s6deck/releases/latest):
+
+| OS | File | Install |
+|---|---|---|
+| macOS (Apple Silicon) | `s6deck-macos-arm64.zip` | Unzip and move `s6deck.app` to Applications. |
+| Windows (64-bit) | `s6deck-windows-x64.zip` | Unzip anywhere (e.g. `%LOCALAPPDATA%\Programs\s6deck`) and run `s6deck.exe`. |
+
+Builds aren't signed with a paid developer certificate, so the OS warns on first launch:
+- **macOS**: if it says the app can't be opened, go to System Settings → Privacy & Security and click **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/s6deck.app`).
+- **Windows**: on the SmartScreen prompt, click **More info → Run anyway**.
+
+Quit the vendor Streonor app first; only one program can drive the device at a time.
 
 ## Features
 
@@ -64,6 +79,8 @@ uv pip install --python .venv/bin/python -e '.[dev]'
 .venv/bin/python -m pytest            # unit tests
 ```
 
+On Windows the interpreter is `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
+
 Quit the vendor Streonor app first; only one program can drive the device at a time.
 
 **Linux** needs permission to open the device without root:
@@ -81,11 +98,25 @@ uv pip install --python .venv/bin/python -e '.[build]'
 dist/s6deck.app/Contents/MacOS/s6deck --self-test          # checks every bundled native library
 ```
 
+On Windows, use `.venv\Scripts\pyinstaller.exe`; the result is `dist\s6deck\s6deck.exe` (keep the whole folder together). Its `--self-test` reports through the exit code, since the windowed exe has no console.
+
 Build on each target OS; PyInstaller doesn't cross-compile. The spec drops unused Qt plugins/translations, QtNetwork, and Pillow's AVIF/WebP/color-management codecs (macOS app ≈ 90 MB, mostly Qt and the Python runtime). The macOS build is ad-hoc signed: it runs on the machine that built it; elsewhere, open it with right-click → Open the first time.
+
+### Releases
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) builds, tests and self-tests both apps on GitHub Actions (macOS arm64, Windows x64). To publish a release, bump `VERSION` in `packaging/s6deck.spec` and `version` in `pyproject.toml`, then push a matching tag:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The zips appear on the [Releases](https://github.com/howardkim0/s6deck/releases) page. Running the workflow by hand (Actions → Build and release → Run workflow) builds the same zips as workflow artifacts without publishing.
 
 App icons are generated from `s6deck/assets/mickey_source.png` with `tools/build_icons.py`.
 
-## macOS permissions
+## Permissions
+
+**macOS**:
 
 | Permission | Needed for | Prompted |
 |---|---|---|
@@ -93,6 +124,8 @@ App icons are generated from `s6deck/assets/mickey_source.png` with `tools/build
 | Microphone | virtual mic (forwarding your voice to calls) | when Virtual mic turns on |
 
 Rebuilding the app changes its ad-hoc signature, so macOS asks for Accessibility again.
+
+**Windows** needs no extra permissions. To start s6deck at login, put a shortcut to `s6deck.exe --hidden` in `shell:startup`.
 
 ## Soundboard in calls
 
