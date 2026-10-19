@@ -138,3 +138,28 @@ def test_silent_clip_is_not_scaled():
     from s6deck.audio import _normalization_gain
 
     assert _normalization_gain(np.zeros((1000, 2), dtype="float32")) == 1.0
+
+
+def test_clip_buffer_keeps_most_recent_frames_across_wraparound():
+    import numpy as np
+
+    from s6deck.chat_clip import ClipBuffer
+
+    buffer = ClipBuffer(seconds=1, rate=10)  # 10 frames
+    for start in (0, 6, 12):
+        buffer.append(np.arange(start, start + 6, dtype=np.int16).repeat(2).reshape(-1, 2))
+    assert buffer.last(4)[:, 0].tolist() == [14, 15, 16, 17]
+    assert buffer.last(100)[:, 0].tolist() == list(range(8, 18))
+    buffer.append_silence(3)
+    assert buffer.last(4)[:, 0].tolist() == [17, 0, 0, 0]
+    buffer.clear()
+    assert len(buffer.last(5)) == 0
+
+
+def test_top_discord_process_is_the_one_without_a_discord_parent():
+    from s6deck.chat_clip import DISCORD_PROCESS_NAMES, _top_process
+
+    processes = {1: ("explorer.exe", 0), 10: ("discord.exe", 1), 11: ("discord.exe", 10),
+                 12: ("discord.exe", 10)}
+    assert _top_process(processes, DISCORD_PROCESS_NAMES) == 10
+    assert _top_process({1: ("explorer.exe", 0)}, DISCORD_PROCESS_NAMES) is None

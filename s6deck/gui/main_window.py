@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDia
 
 from .. import config as config_store
 from ..audio import DEFAULT_VIRTUAL_DEVICE, soundboard
+from ..chat_clip import recorder as chat_clip_recorder
 from ..actions import run_host_action
 from ..config import Binding, Config, Page, Profile
 from ..controls import ControlEvent
@@ -66,6 +67,7 @@ class MainWindow(QMainWindow):
         )
         # Queued to the GUI thread: macOS keyboard APIs (hotkeys) must run on the main thread.
         self._bridge.action_requested.connect(run_host_action)
+        chat_clip_recorder().set_listener(self._on_chat_clip)
         self._save_timer = QTimer(self, singleShot=True, interval=SAVE_DELAY_MILLISECONDS)
         self._save_timer.timeout.connect(self._save_now)
 
@@ -78,6 +80,7 @@ class MainWindow(QMainWindow):
         soundboard().set_volume(self._config.sound_volume)
         if self._config.virtual_mic:
             self._apply_virtual_mic()
+        self._update_chat_clip()
         self._engine.start()
 
     # -- UI construction --------------------------------------------------
@@ -222,6 +225,7 @@ class MainWindow(QMainWindow):
     def _changed(self) -> None:
         """Config edited: push to the device right away, save to disk shortly after."""
         self._engine.update_config(self._config)
+        self._update_chat_clip()
         self._save_timer.start()
 
     def _save_now(self) -> None:
@@ -349,6 +353,17 @@ class MainWindow(QMainWindow):
         soundboard().set_volume(value)
         self._changed()
 
+    def _update_chat_clip(self) -> None:
+        """Listen to Discord only while some binding uses Chat clip that."""
+        uses_chat_clip = any(binding.action.type == "chat_clip" for profile in self._config.profiles
+                             for page in profile.pages for binding in page.bindings.values())
+        chat_clip_recorder().set_enabled(uses_chat_clip)
+
+    def _on_chat_clip(self, message: str) -> None:
+        self.statusBar().showMessage(message, 6000)
+        if self._tray is not None and self.isHidden():
+            self._tray.showMessage("s6deck", message, QSystemTrayIcon.Information, 4000)
+
     def _on_device_brightness(self, value: int) -> None:
         """Brightness changed from a device control; persist it."""
         self._config.brightness = value
@@ -465,6 +480,7 @@ class MainWindow(QMainWindow):
             self._save_now()
         self._engine.stop()
         soundboard().close()
+        chat_clip_recorder().close()
 
 
 def _label_for(binding_id: str, model: DeviceModel) -> str:

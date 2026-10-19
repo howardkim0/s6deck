@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QColorDialog, QComboBox, QFileDialog, QFormLayout
 
 from ..actions import SYSTEM_BRIGHTNESS_COMMANDS, VOLUME_COMMANDS, parse_hotkey
 from ..audio_output import AUDIO_OUTPUT_COMMANDS
+from ..chat_clip import CLIP_SECONDS_CHOICES, CLIPS_DIR
 from ..config import Action, Binding
 
 PANEL_WIDTH = 300
@@ -27,16 +28,18 @@ ACTION_TYPES = (
     ("brightness", "Button brightness"),  # type id kept as "brightness" for existing configs
     ("sound", "Play sound"),
     ("stop_sounds", "Stop sounds"),
+    ("chat_clip", "Chat clip that"),
 )
 # Action types whose value is picked from a list rather than typed.
-CHOICE_ACTION_TYPES = ("page", "profile", "volume", "system_brightness", "audio_output", "brightness")
+CHOICE_ACTION_TYPES = ("page", "profile", "volume", "system_brightness", "audio_output", "brightness",
+                       "chat_clip")
 # Action types without a value field.
 VALUELESS_ACTION_TYPES = ("none", "stop_sounds")
 # Action types whose value is a file chosen with a Browse button, and its file filter.
 BROWSE_FILTERS = {"launch": "", "sound": "Audio (*.mp3 *.wav *.m4a *.aac *.aiff *.flac *.ogg)"}
 # Action types the Test button can run from the GUI (the rest act on the device).
 TESTABLE_ACTION_TYPES = ("hotkey", "launch", "url", "shell", "volume", "system_brightness", "audio_output",
-                         "sound", "stop_sounds")
+                         "sound", "stop_sounds", "chat_clip")
 
 # Short placeholder inside the field, longer help shown under it.
 VALUE_PLACEHOLDERS = {"hotkey": "cmd+shift+4", "type_text": "Yeet", "launch": "Safari", "url": "https://",
@@ -47,6 +50,9 @@ VALUE_HELP = {
     "sound": "Plays on your output (e.g. headphones). With Virtual mic on, call apps using "
              "the virtual mic hear it too.",
     "stop_sounds": "Stops all sounds that are playing.",
+    "chat_clip": "Saves the last N seconds of Discord audio (what others say) as a WAV in "
+                 f"{CLIPS_DIR}, ready for a Play sound key. While this key exists, s6deck keeps "
+                 "the last minute of Discord audio in memory only. Windows.",
     "hotkey": "Modifiers: cmd, ctrl, alt, shift. Keys: a–z, f1–f20, enter, space, "
               "playpause, volup, voldown, mute, next, prev",
     "launch": "App name, or path to an app or file. The key shows its icon unless you set one.",
@@ -220,7 +226,7 @@ class Inspector(QGroupBox):
         self._set_row_visible(self._value_row, action_type not in VALUELESS_ACTION_TYPES)
         self._value_text.setVisible(not uses_choice)
         self._value_choice.setVisible(uses_choice)
-        self._value_choice.setEditable(action_type in ("page", "brightness"))  # free-form numbers
+        self._value_choice.setEditable(action_type in ("page", "brightness", "chat_clip"))  # free-form numbers
         self._browse_target.setVisible(action_type in BROWSE_FILTERS)
         self._icon.setPlaceholderText("App's icon (default)" if action_type == "launch" else "Image file")
         self._test.setVisible(action_type in TESTABLE_ACTION_TYPES)
@@ -239,6 +245,8 @@ class Inspector(QGroupBox):
                 choices = list(SYSTEM_BRIGHTNESS_COMMANDS)
             elif action_type == "audio_output":
                 choices = list(AUDIO_OUTPUT_COMMANDS)
+            elif action_type == "chat_clip":
+                choices = list(CLIP_SECONDS_CHOICES)
             else:
                 choices = list(BRIGHTNESS_CHOICES)
             was_loading, self._loading = self._loading, True
@@ -281,7 +289,8 @@ class Inspector(QGroupBox):
     def _browse_launch_target(self) -> None:
         action_type = self._action_type.currentData()
         title = "Sound to play" if action_type == "sound" else "App or file to open"
-        path, _ = QFileDialog.getOpenFileName(self, title, "", BROWSE_FILTERS.get(action_type, ""))
+        start = str(CLIPS_DIR) if action_type == "sound" and CLIPS_DIR.is_dir() else ""  # saved chat clips
+        path, _ = QFileDialog.getOpenFileName(self, title, start, BROWSE_FILTERS.get(action_type, ""))
         if path:
             self._value_text.setText(path)
             self._emit()

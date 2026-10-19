@@ -299,6 +299,7 @@ HOST_ACTIONS = {
     "type_text": type_text,
     "sound": lambda path: _soundboard().play(path),
     "stop_sounds": lambda _value: _soundboard().stop_all(),
+    "chat_clip": lambda seconds: _chat_clip().run_action(seconds),
 }
 # Actions that take no value.
 VALUELESS_ACTIONS = ("stop_sounds",)
@@ -314,6 +315,12 @@ def _soundboard():
     from .audio import soundboard  # audio libraries load only when a sound is used
 
     return soundboard()
+
+
+def _chat_clip():
+    from .chat_clip import recorder
+
+    return recorder()
 
 
 def run_host_action(action_type: str, value: str) -> None:

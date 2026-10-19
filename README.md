@@ -33,6 +33,7 @@ Quit the vendor Streonor app first; only one program can drive the device at a t
   - system volume (native macOS overlay), system brightness (laptop + external monitors)
   - audio output device: cycle the default output (Windows, Linux; virtual devices skipped)
   - play sound / stop sounds (soundboard), button brightness
+  - **Chat clip that**: save the last 10+ seconds of Discord audio as a sound for the soundboard (Windows)
   - switch page, switch profile
 - **Pages and profiles**, with profiles switching automatically to match the frontmost app.
 - **Soundboard into calls**: sounds play in your headphones and, through a virtual microphone, to people in Google Meet/Zoom together with your voice.
@@ -139,6 +140,14 @@ Call apps read a single microphone, so s6deck forwards your real mic plus soundb
 3. In the call app, choose **BlackHole 2ch** (or CABLE Output) as the microphone. If effects get muffled, turn off the call app's noise cancellation.
 
 Clips also play on your current output device (e.g. headphones).
+
+## Chat clip that
+
+A "Chat clip that" key saves the last 10 seconds (or 15, 20, 30, 60: the key's value) of what Discord played, meaning other people's voices and Discord's own sounds, as a WAV in `Music\s6deck clips`. Bind the file to a Play sound key to replay it. The file browser for Play sound opens in that folder.
+
+- Only Discord's audio is recorded: not other apps, not s6deck's own sounds, not your microphone. It uses Windows' per-process audio capture (Windows 10 2004 or later), so it works with any output device.
+- While at least one binding uses Chat clip that, s6deck keeps the last minute of Discord audio in memory. Nothing is written to disk until you press the key. Remove the binding to stop listening.
+- Discord, Discord PTB and Discord Canary are detected automatically, including when Discord starts after s6deck.
 
 ## Configuration
 
