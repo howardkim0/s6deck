@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import config as config_store
+from . import single_instance
 
 APP_NAME = "s6deck"
 APP_ICON = Path(__file__).resolve().parent / "assets" / "icon.png"
@@ -117,6 +118,10 @@ def main() -> int:
                         filename=_log_file() if getattr(sys, "frozen", False) else None)
     logging.getLogger("PIL").setLevel(logging.INFO)  # PIL's debug output drowns ours
 
+    if not single_instance.acquire(args.config.parent):
+        logging.info("s6deck is already running; showing its window")
+        single_instance.show_running_instance()
+        return 0
     _set_macos_process_name(APP_NAME)
 
     from PySide6.QtGui import QIcon
@@ -131,6 +136,7 @@ def main() -> int:
     app.setWindowIcon(QIcon(str(APP_ICON)))  # window, Dock and tray
     app.setQuitOnLastWindowClosed(False)
     window = MainWindow(config_store.load(args.config), args.config)
+    single_instance.on_show_requested(window.request_show)
     if not args.hidden:
         window.show()
     return app.exec()

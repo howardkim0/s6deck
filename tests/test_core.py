@@ -163,3 +163,8 @@ def test_top_discord_process_is_the_one_without_a_discord_parent():
                  12: ("discord.exe", 10)}
     assert _top_process(processes, DISCORD_PROCESS_NAMES) == 10
     assert _top_process({1: ("explorer.exe", 0)}, DISCORD_PROCESS_NAMES) is None
+
+
+def test_microphone_choice_round_trips_and_defaults_to_system_default():
+    assert from_dict({}).microphone == ""
+    assert from_dict(to_dict(Config(microphone="Microphone (Arctis)"))).microphone == "Microphone (Arctis)"

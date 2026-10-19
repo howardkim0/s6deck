@@ -54,6 +54,7 @@ class Config:
     follow_frontmost_app: bool = True
     # Forward the microphone + soundboard clips into a virtual audio device for calls.
     virtual_mic: bool = False
+    microphone: str = ""    # input forwarded into the virtual mic; empty = system default
     sound_volume: int = 30  # percent, soundboard clips only
     profiles: list[Profile] = field(default_factory=lambda: [Profile()])
 
@@ -86,6 +87,7 @@ def to_dict(config: Config) -> dict[str, Any]:
         "brightness": config.brightness,
         "follow_frontmost_app": config.follow_frontmost_app,
         "virtual_mic": config.virtual_mic,
+        "microphone": config.microphone,
         "sound_volume": config.sound_volume,
         "profiles": [
             {
@@ -130,6 +132,7 @@ def from_dict(data: dict[str, Any]) -> Config:
         brightness=int(data.get("brightness", 80)),
         follow_frontmost_app=bool(data.get("follow_frontmost_app", True)),
         virtual_mic=bool(data.get("virtual_mic", False)),
+        microphone=str(data.get("microphone", "")),
         sound_volume=int(data.get("sound_volume", 30)),
         profiles=profiles or [Profile()],
     )

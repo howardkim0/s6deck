@@ -37,7 +37,7 @@ Quit the vendor Streonor app first; only one program can drive the device at a t
   - switch page, switch profile
 - **Pages and profiles**, with profiles switching automatically to match the frontmost app.
 - **Soundboard into calls**: sounds play in your headphones and, through a virtual microphone, to people in Google Meet/Zoom together with your voice.
-- **Tray app**: closing the window keeps the deck working.
+- **Tray app**: closing the window keeps the deck working. Only one s6deck runs at a time; launching it again shows the running one's window.
 
 ## Supported devices
 
@@ -136,7 +136,7 @@ Call apps read a single microphone, so s6deck forwards your real mic plus soundb
    - **macOS**: [BlackHole 2ch](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`)
    - **Windows**: [VB-CABLE](https://vb-audio.com/Cable/)
    - **Linux**: a PulseAudio/PipeWire null sink named `s6deck_mic` (`pactl load-module module-null-sink sink_name=s6deck_mic`)
-2. Check **Virtual mic** in s6deck. "Sounds" sets clip volume (default 30%); your voice is unaffected.
+2. Check **Virtual mic** in s6deck and pick your microphone in the dropdown next to it ("Default microphone" follows the system's default input). "Sounds" sets clip volume (default 30%); your voice is unaffected.
 3. In the call app, choose **BlackHole 2ch** (or CABLE Output) as the microphone. If effects get muffled, turn off the call app's noise cancellation.
 
 Clips also play on your current output device (e.g. headphones).

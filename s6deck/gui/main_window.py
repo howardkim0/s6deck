@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDia
                                QWidget)
 
 from .. import config as config_store
-from ..audio import DEFAULT_VIRTUAL_DEVICE, soundboard
+from ..audio import DEFAULT_VIRTUAL_DEVICE, microphones, soundboard
 from ..chat_clip import recorder as chat_clip_recorder
 from ..actions import run_host_action
 from ..config import Binding, Config, Page, Profile
@@ -44,6 +44,19 @@ class EngineBridge(QObject):
     control_used = Signal(object)
     brightness_changed = Signal(int)
     action_requested = Signal(str, str)
+    show_requested = Signal()
+
+
+class _PopupRefreshComboBox(QComboBox):
+    """A combo box that refreshes its items right before its list opens."""
+
+    def __init__(self, refresh, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._refresh = refresh
+
+    def showPopup(self) -> None:
+        self._refresh()
+        super().showPopup()
 
 
 class MainWindow(QMainWindow):
@@ -76,6 +89,7 @@ class MainWindow(QMainWindow):
         self._bridge.state_changed.connect(self._on_engine_state)
         self._bridge.control_used.connect(self._on_control_used)
         self._bridge.brightness_changed.connect(self._on_device_brightness)
+        self._bridge.show_requested.connect(self._show_window)
         self._refresh_profiles()
         soundboard().set_volume(self._config.sound_volume)
         if self._config.virtual_mic:
@@ -102,6 +116,11 @@ class MainWindow(QMainWindow):
             f"Send your microphone plus soundboard sounds to “{DEFAULT_VIRTUAL_DEVICE}”. "
             "In Google Meet/Zoom, choose that device as the microphone.")
         self._virtual_mic.setChecked(self._config.virtual_mic)
+        self._microphone = _PopupRefreshComboBox(self._refresh_microphones)
+        self._microphone.setToolTip("Microphone forwarded into the virtual mic")
+        self._microphone.setMaximumWidth(220)
+        self._microphone.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self._set_microphone_items([])  # the device list loads when it's opened
         self._sound_volume = QSpinBox()
         self._sound_volume.setRange(0, 100)
         self._sound_volume.setSuffix("%")
@@ -120,6 +139,7 @@ class MainWindow(QMainWindow):
         top_row.addWidget(self._follow)
         top_row.addSpacing(12)
         top_row.addWidget(self._virtual_mic)
+        top_row.addWidget(self._microphone)
         top_row.addWidget(QLabel("Sounds"))
         top_row.addWidget(self._sound_volume)
 
@@ -165,6 +185,7 @@ class MainWindow(QMainWindow):
         self._apps.editingFinished.connect(self._on_apps_edited)
         self._follow.toggled.connect(self._on_follow_toggled)
         self._virtual_mic.toggled.connect(self._on_virtual_mic_toggled)
+        self._microphone.activated.connect(self._on_microphone_chosen)
         self._sound_volume.valueChanged.connect(self._on_sound_volume_changed)
         self._page_tabs.currentChanged.connect(self._on_page_tab)
         self._page_tabs.tabBarDoubleClicked.connect(self._rename_page)
@@ -338,8 +359,36 @@ class MainWindow(QMainWindow):
         self._apply_virtual_mic()
         self._changed()
 
+    def _refresh_microphones(self) -> None:
+        try:
+            names = microphones()
+        except Exception:  # no audio system; keep showing the saved choice
+            names = []
+        self._set_microphone_items(names)
+
+    def _set_microphone_items(self, names: list[str]) -> None:
+        chosen = self._config.microphone
+        self._microphone.blockSignals(True)
+        self._microphone.clear()
+        self._microphone.addItem("Default microphone", "")
+        for name in names:
+            self._microphone.addItem(name, name)
+        if chosen and chosen not in names:
+            self._microphone.addItem(chosen if not names else f"{chosen} (not connected)", chosen)
+        self._microphone.setCurrentIndex(max(0, self._microphone.findData(chosen)))
+        self._microphone.blockSignals(False)
+
+    def _on_microphone_chosen(self, _index: int) -> None:
+        chosen = self._microphone.currentData() or ""
+        if chosen == self._config.microphone:
+            return
+        self._config.microphone = chosen
+        if self._config.virtual_mic:
+            self._apply_virtual_mic()
+        self._changed()
+
     def _apply_virtual_mic(self) -> None:
-        message = soundboard().set_virtual_mic(self._config.virtual_mic)
+        message = soundboard().set_virtual_mic(self._config.virtual_mic, microphone=self._config.microphone)
         if message:
             self.statusBar().showMessage(message, 6000)
         if self._config.virtual_mic and not soundboard().virtual_mic_active:
@@ -453,6 +502,10 @@ class MainWindow(QMainWindow):
         self._deck.flash(event.binding_id)
 
     # -- window lifecycle -------------------------------------------------
+
+    def request_show(self) -> None:
+        """Show the window; safe to call from any thread (e.g. when s6deck is launched again)."""
+        self._bridge.show_requested.emit()
 
     def _show_window(self) -> None:
         self.showNormal()

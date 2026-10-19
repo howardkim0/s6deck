@@ -76,6 +76,7 @@ class SoundBoard:
         self._local_players: list[subprocess.Popen] = []
         self._stream = None
         self._virtual_device = DEFAULT_VIRTUAL_DEVICE
+        self._microphone = ""  # device name; empty = the system default input
         self._volume = DEFAULT_VOLUME_PERCENT / 100
 
     # -- public -----------------------------------------------------------
@@ -88,9 +89,13 @@ class SoundBoard:
     def virtual_mic_active(self) -> bool:
         return self._stream is not None
 
-    def set_virtual_mic(self, enabled: bool, virtual_device: str = DEFAULT_VIRTUAL_DEVICE) -> str:
-        """Start/stop forwarding mic + clips into the virtual device. Returns a status message."""
+    def set_virtual_mic(self, enabled: bool, virtual_device: str = DEFAULT_VIRTUAL_DEVICE,
+                        microphone: str = "") -> str:
+        """Start/stop forwarding mic + clips into the virtual device. Returns a status message.
+
+        microphone: input device name from microphones(); empty uses the system default."""
         self._virtual_device = virtual_device
+        self._microphone = microphone
         self._stop_stream()
         if not enabled:
             return ""
@@ -151,7 +156,10 @@ class SoundBoard:
         output = _find_device(devices, self._virtual_device, want_output=True)
         if output is None:
             raise RuntimeError(f"“{self._virtual_device}” not found; install a virtual audio device")
-        microphone = _pick_microphone(devices, sounddevice.default.device[0])
+        microphone = _find_input(devices, self._microphone) if self._microphone else None
+        missing = f" (“{self._microphone}” not found, using the default)" if self._microphone and microphone is None else ""
+        if microphone is None:
+            microphone = _pick_microphone(devices, sounddevice.default.device[0])
         if microphone is None:
             raise RuntimeError("no physical microphone found")
 
@@ -180,7 +188,7 @@ class SoundBoard:
         mic_name = devices[microphone]["name"]
         out_name = devices[output]["name"]
         log.info("virtual mic: %s + sounds -> %s", mic_name, out_name)
-        return f"Virtual mic on: {mic_name} + sounds → {out_name}"
+        return f"Virtual mic on: {mic_name} + sounds → {out_name}{missing}"
 
     def _stop_stream(self) -> None:
         stream, self._stream = self._stream, None
@@ -215,6 +223,28 @@ def _find_device(devices, name: str, want_output: bool) -> int | None:
         if channels > 0 and wanted in device["name"].casefold():
             return index
     return None
+
+
+def _find_input(devices, name: str) -> int | None:
+    """The input device named exactly `name` (as listed by microphones())."""
+    for index, device in enumerate(devices):
+        if device["max_input_channels"] > 0 and device["name"] == name:
+            return index
+    return None
+
+
+def microphones() -> list[str]:
+    """Names of the physical microphones, for picking one. Devices plugged in since the last
+    scan show up after the virtual mic restarts (PortAudio can't rescan under a running stream)."""
+    import sounddevice
+
+    devices = sounddevice.query_devices()
+    default_input = sounddevice.default.device[0]
+    # Each device appears once per host API (MME, WASAPI, ...); list the default input's API only.
+    host_api = devices[default_input]["hostapi"] if default_input is not None and default_input >= 0 else 0
+    return [device["name"] for device in devices
+            if device["hostapi"] == host_api and device["max_input_channels"] > 0
+            and not _is_virtual(device["name"]) and not device["name"].startswith("Microsoft Sound Mapper")]
 
 
 def _is_virtual(name: str) -> bool:
