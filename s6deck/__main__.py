@@ -67,7 +67,7 @@ def _self_test() -> int:
         with tempfile.TemporaryDirectory() as directory:
             wav = str(Path(directory) / "test.wav")
             soundfile.write(wav, np.zeros((4410, 1), dtype="float32"), 44100)
-            clip = _load_clip(wav, 0.0)
+            clip, _gain = _load_clip(wav, 0.0)
         return f"resampled to {clip.shape}"
 
     def list_audio_devices():
