@@ -121,3 +121,20 @@ def test_config_round_trips_soundboard_settings(tmp_path):
     loaded = load(tmp_path / "c.json")
     assert (loaded.virtual_mic, loaded.sound_volume) == (True, 45)
     assert loaded.profiles[0].pages[0].bindings["key:2"].action.type == "stop_sounds"
+
+
+@pytest.mark.parametrize("rms_dbfs, expected_dbfs", [(-5, -20), (-30, -30)])
+def test_loud_clips_are_turned_down_to_target_and_quiet_ones_left_alone(rms_dbfs, expected_dbfs):
+    np = pytest.importorskip("numpy")
+    from s6deck.audio import _normalization_gain
+
+    samples = np.full((1000, 2), 10 ** (rms_dbfs / 20), dtype="float32")
+    gain = _normalization_gain(samples)
+    assert 20 * np.log10(np.sqrt(np.mean((samples * gain) ** 2))) == pytest.approx(expected_dbfs, abs=0.01)
+
+
+def test_silent_clip_is_not_scaled():
+    np = pytest.importorskip("numpy")
+    from s6deck.audio import _normalization_gain
+
+    assert _normalization_gain(np.zeros((1000, 2), dtype="float32")) == 1.0

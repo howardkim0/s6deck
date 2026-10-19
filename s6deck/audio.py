@@ -18,6 +18,9 @@ log = logging.getLogger(__name__)
 
 SAMPLE_RATE = 48000
 DEFAULT_VOLUME_PERCENT = 30  # meme clips are mastered loud; full scale is painful
+# Clips louder than this (roughly speech level) are turned down to it, so one volume
+# setting works for clips mastered at wildly different levels.
+TARGET_RMS_DBFS = -20
 # Enough buffering to ride out UI work (key rendering) without dropping mic audio,
 # small enough that call participants don't notice the delay.
 STREAM_LATENCY_SECONDS = 0.03
@@ -27,9 +30,22 @@ VIRTUAL_DEVICE_HINTS = ("blackhole", "cable", "loopback", "null", "monitor of", 
 DEFAULT_VIRTUAL_DEVICE = {"darwin": "BlackHole 2ch", "win32": "CABLE Input"}.get(sys.platform, "s6deck_mic")
 
 
+def _normalization_gain(samples) -> float:
+    """Gain that brings a clip down to TARGET_RMS_DBFS; never boosts quiet clips."""
+    import numpy as np
+
+    rms = float(np.sqrt(np.mean(np.square(samples)))) if len(samples) else 0.0
+    if rms == 0.0:
+        return 1.0
+    return min(1.0, 10 ** (TARGET_RMS_DBFS / 20) / rms)
+
+
 @lru_cache(maxsize=32)
 def _load_clip(path: str, mtime: float):
-    """Decode an audio file to float32 stereo at SAMPLE_RATE."""
+    """Decode an audio file to float32 stereo at SAMPLE_RATE, loudness-normalized.
+
+    Returns (samples, gain) where gain is the normalization already applied.
+    """
     import numpy as np
     import soundfile
 
@@ -42,7 +58,8 @@ def _load_clip(path: str, mtime: float):
         source_times = np.arange(len(data)) / rate
         target_times = np.arange(frames) / SAMPLE_RATE
         data = np.stack([np.interp(target_times, source_times, data[:, c]) for c in range(2)], axis=1)
-    return data.astype("float32")
+    gain = _normalization_gain(data)
+    return (data * gain).astype("float32"), gain
 
 
 def _clip(path: str):
@@ -84,8 +101,9 @@ class SoundBoard:
             return f"Virtual mic unavailable: {error}"
 
     def play(self, path: str) -> None:
-        clip = _clip(path) * self._volume
-        self._play_locally(Path(path).expanduser(), clip)
+        samples, gain = _clip(path)
+        clip = samples * self._volume
+        self._play_locally(Path(path).expanduser(), clip, gain * self._volume)
         if self._stream is not None:
             with self._lock:
                 self._playing.append([clip, 0])
@@ -106,11 +124,14 @@ class SoundBoard:
 
     # -- internals --------------------------------------------------------
 
-    def _play_locally(self, path: Path, scaled_clip) -> None:
-        """Play on the current default output (e.g. headphones)."""
+    def _play_locally(self, path: Path, scaled_clip, file_gain: float) -> None:
+        """Play on the current default output (e.g. headphones).
+
+        file_gain is the volume to apply when playing the original file directly.
+        """
         if sys.platform == "darwin":
             # afplay always uses the current default output, so it follows headphone changes.
-            player = subprocess.Popen(["afplay", "--volume", f"{self._volume:.2f}", str(path)],
+            player = subprocess.Popen(["afplay", "--volume", f"{file_gain:.3f}", str(path)],
                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
             with self._lock:
